@@ -53,8 +53,8 @@ class action_space:
     def movement(self):
         self.lin_time = np.absolute(self.distance / self.lin_velocity)
         self.ang_time = np.absolute(self.theta / self.ang_velocity)
-         
-           
+
+
 
 # movement needed to transition from current state to next state
 # sets action_space to be called to move robot
@@ -178,7 +178,7 @@ def main(args=None):
         twist.linear.x = float(jetbot_action.lin_velocity)
         twist.linear.y = 0.0
         twist.linear.z = 0.0
-              
+        
         twist.angular.x = 0.0
         twist.angular.y = 0.0
         twist.angular.z = 0.0
