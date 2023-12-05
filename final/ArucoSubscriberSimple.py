@@ -1,7 +1,17 @@
+import rclpy
+from rclpy.node import Node 
+from geometry_msgs.msg import Twist
+from std_msgs.msg import String
+from jetbot_ros.motors import MotorController
+from aruco_opencv_msgs.msg import ArucoDetection
 import numpy as np
+#from scipy.spatial.transform import Rotation as R
+import scipy
+import time
+
 import random
 import matplotlib.pyplot as plt
-from matplotlib import collections  as mc
+from matplotlib import collections as mc
 from collections import deque
 
 ####################################################################################################
@@ -19,27 +29,6 @@ class Line():
 
     def path(self, t):
         return self.p + t * self.dirn
-    
-def Intersection(line, center, radius):
-    ''' Check line-sphere (circle) intersection '''
-    a = np.dot(line.dirn, line.dirn)
-    b = 2 * np.dot(line.dirn, line.p - center)
-    c = np.dot(line.p - center, line.p - center) - radius * radius
-
-    discriminant = b * b - 4 * a * c
-    if discriminant < 0:
-        return False
-
-    t1 = (-b + np.sqrt(discriminant)) / (2 * a);
-    t2 = (-b - np.sqrt(discriminant)) / (2 * a);
-
-    if (t1 < 0 and t2 < 0) or (t1 > line.dist and t2 > line.dist):
-        return False
-
-    return True
-
-def distance(x, y):
-    return np.linalg.norm(np.array(x) - np.array(y))
 
 # Function definitions for RRT algorithm
 
@@ -49,11 +38,8 @@ def isInObstacle(vex, obstacles, radius):
             return True
     return False
 
-def isThruObstacle(line, obstacles, radius):
-    for obs in obstacles:
-        if Intersection(line, obs, radius):
-            return True
-    return False
+def distance(x, y):
+    return np.linalg.norm(np.array(x) - np.array(y))
 
 def nearest(G, vex, obstacles, radius):
     Nvex = None
@@ -81,24 +67,6 @@ def newVertex(randvex, nearvex, stepSize):
 
     newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1])
     return newvex
-
-def window(startpos, endpos):
-    ''' Define seach window - 2 times of start to end rectangle'''
-    width = endpos[0] - startpos[0]
-    height = endpos[1] - startpos[1]
-    winx = startpos[0] - (width / 2.)
-    winy = startpos[1] - (height / 2.)
-    return winx, winy, width, height
-
-
-def isInWindow(pos, winx, winy, width, height):
-    ''' Restrict new vertex insides search window'''
-    if winx < pos[0] < winx+width and \
-        winy < pos[1] < winy+height:
-        return True
-    else:
-        return False
-
 
 
 # Graph class for RRT algorithm
@@ -136,8 +104,8 @@ class Graph:
 
 
     def randomPosition(self):
-        rx = random.random()
-        ry = random.random()
+        rx = random()
+        ry = random()
 
         posx = self.startpos[0] - (self.sx / 2.) + rx * self.sx * 2
         posy = self.startpos[1] - (self.sy / 2.) + ry * self.sy * 2
@@ -204,6 +172,7 @@ def dijkstra(G):
         curNode = prev[curNode]
     path.appendleft(G.vertices[curNode])
     return list(path)
+
 def plot(G, obstacles, radius, path=None):
     '''
     Plot RRT, obstacles and shortest path
@@ -301,34 +270,59 @@ def state_transition(state_space,action_space,next_vertex):
     state_space.z = state_space.z + mv[1]
     
 ################################################################################    
+
+# Read positions of aruco markers- in this implementation these values will only be 
+# viewed once (before movement) to determine path to goal
+class ArucoSubscriber(Node):
+    
+    def __init__(self):
+        super().__init__('aruco_subscriber') # this name will show in node list
+        
+        # create subscriber to aruco_detection messages
+        self.sub = self.create_subscription(
+                ArucoDetection, # type of message
+                'aruco_detections', # topic to subscribe to
+                self.listener_callback, # called every time node receives message
+                10)
+        
+        # create dictionary of markers to be populated by messages in "x,z,theta" format
+        self.markerOrientation = {}
+        self.markerPosition = {}
+        
+    # Build/update dictionary of coordinates for each marker every time new message arrives
+    def listener_callback(self,aruco_msg):
+        for marker in aruco_msg.markers:
+            id = marker.id
+            x = marker.pose.position.x
+            y = marker.pose.position.y
+            z = marker.pose.position.z
+            self.markerPosition.update({id:[x,y,z]})
+        
+################################################################################    
         
 def main(args=None):
-    
+
+    # create node
+    aruco_subscriber = ArucoSubscriber()
+    # define markers
+    markers = aruco_subscriber.markers
     # assume starting position of jetbot to be 0,0
     startpos = (0,0)
-
-    ArucoMarkers = {}
-    # define 5 total markers
-    # NEED TO CONSIDER NEGATIVE COORDINATES!!!
-    for i in range(5):
-        ArucoMarkers.update({i:(random.randint(-8,8),random.randint(-8,8),random.randint(-8,8))})
-
     # choose arbitrary goal for now
-    # goal = ArucoMarkers[random.randint(0,4)]
-    goal_marker = 0
-    # endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][2])
-    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1]) # is this or above correct?
+    goal_id = 0
+    # endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1])
+    endpos=(markers.markerPosition[goal_id][0],markers[goal_id][2]) # is this or above correct?
     print("END POS: ")
     print(endpos)
 
     obstacles = []
     # these are exact comparisons, will need to be margin of error when comparing real coordinates (floats)
-    for marker in ArucoMarkers.keys():
-        if marker == goal_marker:
+    for iter in markers:
+        if iter.id == goal_id:
             continue
         else:
             # obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][1]))
-            obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][1])) # which one is correct?
+            obstacles.append((iter.markerPosition[iter.id][0],iter.markerPosition[iter.id][2])) # which one is correct? ([1] or [2])
               
     print(obstacles)
 
@@ -373,4 +367,4 @@ def main(args=None):
     '''
 
 if __name__ == '__main__':
-        main()
+        main()    
