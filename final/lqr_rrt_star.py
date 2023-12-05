@@ -14,8 +14,8 @@ import sys
 import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
 
-from LQRPlanner.lqr_planner import LQRPlanner
-from RRTStar.rrt_star import RRTStar
+from lqr_planner import LQRPlanner
+from rrt_star import RRTStar
 
 show_animation = True
 
@@ -27,10 +27,10 @@ class LQRRRTStar(RRTStar):
 
     def __init__(self, start, goal, obstacle_list, rand_area,
                  goal_sample_rate=10,
-                 max_iter=200,
+                 max_iter=500,
                  connect_circle_dist=50.0,
                  step_size=0.2,
-                 robot_radius=2.0,
+                 robot_radius=5.0,
                  ):
         """
         Setting Parameter
@@ -208,6 +208,7 @@ def main(maxIter=200):
     print("Start " + __file__)
 
     # ====Search Path with RRT====
+    '''
     obstacleList = [
         (5, 5, 1),
         (4, 6, 1),
@@ -216,6 +217,8 @@ def main(maxIter=200):
         (6, 5, 1),
         (7, 5, 1)
     ]  # [x,y,size]
+    '''
+    obstacleList = [(5,5,1)]
 
     # Set Initial parameters
     start = [0.0, 0.0]

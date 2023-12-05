@@ -226,7 +226,7 @@ def plot(G, obstacles, radius, path=None):
 
     if path is not None:
         paths = [(path[i], path[i+1]) for i in range(len(path)-1)]
-        lc2 = mc.LineCollection(paths, colors='blue', linewidths=3)
+        lc2 = mc.LineCollection(paths, colors='blue', linewidths=1)
         ax.add_collection(lc2)
 
     #ax.autoscale()
@@ -262,7 +262,7 @@ class state_space:
 class action_space:
     # initialize class variables to be calculated / set by transition function
     def __init__(self):
-        self.theta = 0
+        self.theta = 0 # will be the incremental angle change (relative)
         self.dist = 0
         self.lin_velocity = 0.1 # meter per second
         self.ang_velocity = 1 # degree per second
@@ -273,6 +273,7 @@ class action_space:
         self.lin_time = np.absolute(self.dist / self.lin_velocity)
         self.ang_time = np.absolute(self.theta / self.ang_velocity)
         # print(((np.sin(self.theta)*self.dist),(np.sin(self.theta)*self.dist)))
+        # return value below intended for simulation purposes
         return ((np.cos(self.theta)*self.dist),(np.sin(self.theta)*self.dist))
            
 # movement needed to transition from current state to next state
@@ -283,16 +284,19 @@ def state_transition(state_space,action_space,next_vertex):
     # use arctan or arctan2?
     ang = np.arctan2((next_vertex[1]-state_space.z),(next_vertex[0] - state_space.x))
     # adjust theta of jetbot
-    # state_space.theta = state_space.theta + ang
-    state_space.theta = ang
+    state_space.theta = ang + state_space.theta
     # update action_space
-    action_space.theta = state_space.theta
+    action_space.theta = ang
     # find distance between points using pythagorean thm
     dist = np.sqrt((next_vertex[0] - state_space.x)**2 + (next_vertex[1]-state_space.z)**2)
     action_space.dist = dist
-    # update state_space assuming position becomes new position
-    state_space.x = next_vertex[0]
-    state_space.z = next_vertex[1]
+    # update state_space assuming position becomes new position (will definitely introduce error)
+    # should really update state space according to action_space.movement()
+    # state_space.x = next_vertex[0]
+    # state_space.z = next_vertex[1]
+    mv = action_space.movement()
+    state_space.x = state_space.x + mv[0]
+    state_space.z = state_space.z + mv[1]
     
 ################################################################################    
         
@@ -309,7 +313,10 @@ def main(args=None):
     # choose arbitrary goal for now
     # goal = ArucoMarkers[random.randint(0,4)]
     goal_marker = 0
-    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][2])
+    # endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][2])
+    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1]) # is this or above correct?
+    print("END POS: ")
+    print(endpos)
 
     obstacles = []
     # these are exact comparisons, will need to be margin of error when comparing real coordinates (floats)
@@ -317,7 +324,8 @@ def main(args=None):
         if marker == goal_marker:
             continue
         else:
-            obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][2]))
+            # obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][1]))
+            obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][1])) # which one is correct?
               
     print(obstacles)
 
@@ -338,17 +346,22 @@ def main(args=None):
         # simulate jetbot movement
         jetbot_state = state_space(0,0,0)
         jetbot_action = action_space()
-        jetbot_path = []
+        jetbot_path = [[0,0]]
         hist = (0,0)
-        error = []
+        error = [] # use this eventually
 
+        print("PATH LENGTH: ")
+        print(len(path))
         for i in range(len(path)-1):
             state_transition(jetbot_state,jetbot_action,path[i+1]) # jetbot state is updated by this function
-            mv = jetbot_action.movement()
-            jetbot_path.append(((mv[0]+hist[0]),(mv[1]+hist[1])))
-            hist = mv
+            #mv = jetbot_action.movement()
+            #jetbot_path.append(((mv[0]+hist[0]),(mv[1]+hist[1])))
+            #hist = mv
+            jetbot_path.append((jetbot_state.x,jetbot_state.z))
 
         plot(G, obstacles, radius, jetbot_path)
+        print("JETBOT PATH LENGTH: ")
+        print(len(jetbot_path))
         print(jetbot_path)
     '''
         plot(G, obstacles, radius, path)
