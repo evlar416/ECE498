@@ -1,17 +1,7 @@
-import rclpy
-from rclpy.node import Node 
-from geometry_msgs.msg import Twist
-from std_msgs.msg import String
-from jetbot_ros.motors import MotorController
-from aruco_opencv_msgs.msg import ArucoDetection
 import numpy as np
-#from scipy.spatial.transform import Rotation as R
-import scipy
-import time
-
 import random
 import matplotlib.pyplot as plt
-from matplotlib import collections as mc
+from matplotlib import collections  as mc
 from collections import deque
 
 ####################################################################################################
@@ -29,6 +19,27 @@ class Line():
 
     def path(self, t):
         return self.p + t * self.dirn
+    
+def Intersection(line, center, radius):
+    ''' Check line-sphere (circle) intersection '''
+    a = np.dot(line.dirn, line.dirn)
+    b = 2 * np.dot(line.dirn, line.p - center)
+    c = np.dot(line.p - center, line.p - center) - radius * radius
+
+    discriminant = b * b - 4 * a * c
+    if discriminant < 0:
+        return False
+
+    t1 = (-b + np.sqrt(discriminant)) / (2 * a);
+    t2 = (-b - np.sqrt(discriminant)) / (2 * a);
+
+    if (t1 < 0 and t2 < 0) or (t1 > line.dist and t2 > line.dist):
+        return False
+
+    return True
+
+def distance(x, y):
+    return np.linalg.norm(np.array(x) - np.array(y))
 
 # Function definitions for RRT algorithm
 
@@ -38,8 +49,11 @@ def isInObstacle(vex, obstacles, radius):
             return True
     return False
 
-def distance(x, y):
-    return np.linalg.norm(np.array(x) - np.array(y))
+def isThruObstacle(line, obstacles, radius):
+    for obs in obstacles:
+        if Intersection(line, obs, radius):
+            return True
+    return False
 
 def nearest(G, vex, obstacles, radius):
     Nvex = None
@@ -67,6 +81,24 @@ def newVertex(randvex, nearvex, stepSize):
 
     newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1])
     return newvex
+
+def window(startpos, endpos):
+    ''' Define seach window - 2 times of start to end rectangle'''
+    width = endpos[0] - startpos[0]
+    height = endpos[1] - startpos[1]
+    winx = startpos[0] - (width / 2.)
+    winy = startpos[1] - (height / 2.)
+    return winx, winy, width, height
+
+
+def isInWindow(pos, winx, winy, width, height):
+    ''' Restrict new vertex insides search window'''
+    if winx < pos[0] < winx+width and \
+        winy < pos[1] < winy+height:
+        return True
+    else:
+        return False
+
 
 
 # Graph class for RRT algorithm
@@ -104,8 +136,8 @@ class Graph:
 
 
     def randomPosition(self):
-        rx = random()
-        ry = random()
+        rx = random.random()
+        ry = random.random()
 
         posx = self.startpos[0] - (self.sx / 2.) + rx * self.sx * 2
         posy = self.startpos[1] - (self.sy / 2.) + ry * self.sy * 2
@@ -172,7 +204,6 @@ def dijkstra(G):
         curNode = prev[curNode]
     path.appendleft(G.vertices[curNode])
     return list(path)
-
 def plot(G, obstacles, radius, path=None):
     '''
     Plot RRT, obstacles and shortest path
@@ -227,14 +258,13 @@ class state_space:
     def __init__(self,x,z,theta):
         self.x = x
         self.z = z
-        self.theta = theta # use theta for jetbot movement as these verticies do not 
-                            # need an accurate self.theta to move in correct direction
+        self.theta = theta
 
 # define action space
 class action_space:
     # initialize class variables to be calculated / set by transition function
     def __init__(self):
-        self.phi = 0 # will be the incremental angle change (relative)
+        self.theta = 0 # will be the incremental angle change (relative)
         self.dist = 0
         self.lin_velocity = 0.1 # meter per second
         self.ang_velocity = 1 # degree per second
@@ -242,9 +272,11 @@ class action_space:
         self.lin_time = 0
     # determine timestep needed to orient jetbot given linear and angular velocity
     def movement(self):
-        #self.lin_time = np.absolute(self.dist / self.lin_velocity)
-        #self.ang_time = np.absolute(self.phi / self.ang_velocity)
-        return ((np.cos(self.phi)*self.dist),(np.sin(self.phi)*self.dist))
+        self.lin_time = np.absolute(self.dist / self.lin_velocity)
+        self.ang_time = np.absolute(self.theta / self.ang_velocity)
+        # print(((np.sin(self.theta)*self.dist),(np.sin(self.theta)*self.dist)))
+        # return value below intended for simulation purposes
+        return ((np.cos(self.theta)*self.dist),(np.sin(self.theta)*self.dist))
         
 # movement needed to transition from current state to next state
 # sets action_space to be called to move robot
@@ -253,90 +285,97 @@ def state_transition(state_space,action_space,next_vertex):
     # print(next_vertex[0],state_space.x)
     # use arctan or arctan2?
     ang = np.arctan2((next_vertex[1]-state_space.z),(next_vertex[0] - state_space.x))
-    # adjust theta of jetbot assuming it matches this rotation --> maybe use an ideal/next angle var?
-    state_space.theta += ang #valid with atan2 always returning quandrant?
-    # update action_space 
-    action_space.phi = ang
+    # adjust theta of jetbot
+    state_space.theta = ang + state_space.theta
+    # update action_space
+    action_space.theta = ang
     # find distance between points using pythagorean thm
     dist = np.sqrt((next_vertex[0] - state_space.x)**2 + (next_vertex[1]-state_space.z)**2)
     action_space.dist = dist
+    # update state_space assuming position becomes new position (will definitely introduce error)
+    # should really update state space according to action_space.movement()
+    # state_space.x = next_vertex[0]
+    # state_space.z = next_vertex[1]
     mv = action_space.movement()
     state_space.x = state_space.x + mv[0]
     state_space.z = state_space.z + mv[1]
+    '''
+    print ("STATE X: " + str(state_space.x) + "\n")
+    print ("STATE Z: " + str(state_space.z) + "\n")
+    print ("STATE T: " + str(state_space.theta) + "\n")
+    '''
     
 ################################################################################    
-
-# Read positions of aruco markers- in this implementation these values will only be 
-# viewed once (before movement) to determine path to goal
-class ArucoSubscriber(Node):
+        
+def main(args=None):
     
-    def __init__(self):
-        super().__init__('aruco_subscriber') # this name will show in node list
-        
-        # create subscriber to aruco_detection messages
-        self.sub = self.create_subscription(
-                ArucoDetection, # type of message
-                'aruco_detections', # topic to subscribe to
-                self.listener_callback, # called every time node receives message
-                10)
-        
-        # create dictionary of markers to be populated by messages in "x,z,theta" format
-        self.markerOrientation = {}
-        self.markerPosition = {}
-        
-    # Build/update dictionary of coordinates for each marker every time new message arrives
-    def listener_callback(self,aruco_msg):
-        for marker in aruco_msg.markers:
-            id = marker.id
-            x = marker.pose.position.x
-            y = marker.pose.position.y
-            z = marker.pose.position.z
-            self.markerPosition.update({id:[x,y,z]})
-        
-################################################################################    
-
-def see_aruco_tag():
-    # create node
-    aruco_subscriber = ArucoSubscriber()
-    # define markers
-    markers = aruco_subscriber.markers
     # assume starting position of jetbot to be 0,0
     startpos = (0,0)
-    # choose arbitrary goal 0
-    goal_id = 0
-    endpos=(markers.markerPosition[goal_id][0],markers[goal_id][2]) # is this or [goal_id][1] correct?
+
+    ArucoMarkers = {}
+    # define 5 total markers
+    # NEED TO CONSIDER NEGATIVE COORDINATES!!!
+    for i in range(5):
+        ArucoMarkers.update({i:(random.randint(-8,8),random.randint(-8,8),random.randint(-8,8))})
+
+    # choose arbitrary goal for now
+    # goal = ArucoMarkers[random.randint(0,4)]
+    goal_marker = 0
+    # endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][2])
+    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1]) # is this or above correct?
+    print("END POS: ")
+    print(endpos)
 
     obstacles = []
-    for iter in markers:
-        if iter.id == goal_id:
+    # these are exact comparisons, will need to be margin of error when comparing real coordinates (floats)
+    for marker in ArucoMarkers.keys():
+        if marker == goal_marker:
             continue
         else:
-            obstacles.append((iter.markerPosition[iter.id][0],iter.markerPosition[iter.id][2])) # which one is correct? ([1] or [2])
-    return endpos,obstacles
+            # obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][1]))
+            obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][1])) # which one is correct?
+              
+    print(obstacles)
 
-def path_plan(startpos, endpos, obstacles, n_iter, radius, stepSize, plot):
+    # define max iteration for RRT
+    n_iter = 400
+              
+    # define radius for both reaching goal and avoiding obstacles??
+    radius = 0.5 # 10 cm radius
+              
+    # define stepsize for forming new verticies
+    stepSize = 0.3 # need to figure out stepsize for jetbot
+              
+    # call RRT and Dijkstra to find shortest path to object  
     G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
     if G.success:
         path = dijkstra(G)
-        if(plot):
-            plot(G, obstacles, radius, path)
+        print(path)
+        # simulate jetbot movement
+        jetbot_state = state_space(0,0,0)
+        jetbot_action = action_space()
+        jetbot_path = [[0,0]]
+        hist = (0,0)
+        error = [] # use this eventually
+
+        print("PATH LENGTH: ")
+        print(len(path))
+        for i in range(len(path)-1):
+            state_transition(jetbot_state,jetbot_action,path[i+1]) # jetbot state is updated by this function
+            #mv = jetbot_action.movement()
+            #jetbot_path.append(((mv[0]+hist[0]),(mv[1]+hist[1])))
+            #hist = mv
+            jetbot_path.append((jetbot_state.x,jetbot_state.z))
+
+        plot(G, obstacles, radius, jetbot_path)
+        print("JETBOT PATH LENGTH: ")
+        print(len(jetbot_path))
+        print(jetbot_path)
+    '''
+        plot(G, obstacles, radius, path)
     else:
-        path = -1
-        if(plot):
-            plot(G, obstacles, radius)
-    return path
-
-def jetbot_sim(path):
-    jetbot_state = state_space(0,0,0)
-    jetbot_action = action_space()
-    jetbot_path = [[0,0]]
-    for i in range(len(path)-1):
-        state_transition(jetbot_state,jetbot_action,path[i+1])
-        jetbot_path.append((jetbot_state.x,jetbot_state.z))
-    return jetbot_path
-
-def main(args=None):
-
+        plot(G, obstacles, radius)
+    '''
 
 if __name__ == '__main__':
-    main()    
+        main()
