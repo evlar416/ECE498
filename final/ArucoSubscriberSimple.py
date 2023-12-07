@@ -227,13 +227,14 @@ class state_space:
     def __init__(self,x,z,theta):
         self.x = x
         self.z = z
-        self.theta = theta
+        self.theta = theta # use theta for jetbot movement as these verticies do not 
+                            # need an accurate self.theta to move in correct direction
 
 # define action space
 class action_space:
     # initialize class variables to be calculated / set by transition function
     def __init__(self):
-        self.theta = 0 # will be the incremental angle change (relative)
+        self.phi = 0 # will be the incremental angle change (relative)
         self.dist = 0
         self.lin_velocity = 0.1 # meter per second
         self.ang_velocity = 1 # degree per second
@@ -242,10 +243,10 @@ class action_space:
     # determine timestep needed to orient jetbot given linear and angular velocity
     def movement(self):
         self.lin_time = np.absolute(self.dist / self.lin_velocity)
-        self.ang_time = np.absolute(self.theta / self.ang_velocity)
+        self.ang_time = np.absolute(self.phi / self.ang_velocity)
         # print(((np.sin(self.theta)*self.dist),(np.sin(self.theta)*self.dist)))
         # return value below intended for simulation purposes
-        return ((np.cos(self.theta)*self.dist),(np.sin(self.theta)*self.dist))
+        return ((np.cos(self.phi)*self.dist),(np.sin(self.phi)*self.dist))
         
 # movement needed to transition from current state to next state
 # sets action_space to be called to move robot
@@ -254,10 +255,10 @@ def state_transition(state_space,action_space,next_vertex):
     # print(next_vertex[0],state_space.x)
     # use arctan or arctan2?
     ang = np.arctan2((next_vertex[1]-state_space.z),(next_vertex[0] - state_space.x))
-    # adjust theta of jetbot
-    state_space.theta = ang + state_space.theta
-    # update action_space
-    action_space.theta = ang
+    # adjust theta of jetbot assuming it matches this rotation --> maybe use an ideal/next angle var?
+    state_space.theta += ang #valid with atan2 always returning quandrant?
+    # update action_space 
+    action_space.phi = ang
     # find distance between points using pythagorean thm
     dist = np.sqrt((next_vertex[0] - state_space.x)**2 + (next_vertex[1]-state_space.z)**2)
     action_space.dist = dist
@@ -299,6 +300,8 @@ class ArucoSubscriber(Node):
             self.markerPosition.update({id:[x,y,z]})
         
 ################################################################################    
+
+# FIGURE OUT (IF ANYWHERE) WHERE TO USE np.isclose() / np.allclose()
         
 def main(args=None):
 
@@ -333,7 +336,7 @@ def main(args=None):
     radius = 0.5 # 10 cm radius
               
     # define stepsize for forming new verticies
-    stepSize = 0.3 # need to figure out stepsize for jetbot
+    stepSize = 0.3 # need to figure out stepsize makes sense for jetbot
               
     # call RRT and Dijkstra to find shortest path to object  
     G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
@@ -347,8 +350,6 @@ def main(args=None):
         hist = (0,0)
         error = [] # use this eventually
 
-        print("PATH LENGTH: ")
-        print(len(path))
         for i in range(len(path)-1):
             state_transition(jetbot_state,jetbot_action,path[i+1]) # jetbot state is updated by this function
             #mv = jetbot_action.movement()
@@ -357,14 +358,9 @@ def main(args=None):
             jetbot_path.append((jetbot_state.x,jetbot_state.z))
 
         plot(G, obstacles, radius, jetbot_path)
-        print("JETBOT PATH LENGTH: ")
-        print(len(jetbot_path))
-        print(jetbot_path)
-    '''
-        plot(G, obstacles, radius, path)
+
     else:
         plot(G, obstacles, radius)
-    '''
 
 if __name__ == '__main__':
         main()    
