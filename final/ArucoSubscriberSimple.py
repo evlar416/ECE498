@@ -301,31 +301,26 @@ class ArucoSubscriber(Node):
         
 ################################################################################    
 
-# FIGURE OUT (IF ANYWHERE) WHERE TO USE np.isclose() / np.allclose()
-        
-def main(args=None):
-
+def see_aruco_tag():
     # create node
     aruco_subscriber = ArucoSubscriber()
     # define markers
     markers = aruco_subscriber.markers
     # assume starting position of jetbot to be 0,0
     startpos = (0,0)
-    # choose arbitrary goal for now
+    # choose arbitrary goal 0
     goal_id = 0
-    # endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1])
-    endpos=(markers.markerPosition[goal_id][0],markers[goal_id][2]) # is this or above correct?
-    print("END POS: ")
-    print(endpos)
+    endpos=(markers.markerPosition[goal_id][0],markers[goal_id][2]) # is this or [goal_id][1] correct?
 
     obstacles = []
-    # these are exact comparisons, will need to be margin of error when comparing real coordinates (floats)
     for iter in markers:
         if iter.id == goal_id:
             continue
         else:
-            # obstacles.append((ArucoMarkers[marker][0],ArucoMarkers[marker][1]))
             obstacles.append((iter.markerPosition[iter.id][0],iter.markerPosition[iter.id][2])) # which one is correct? ([1] or [2])
+    return endpos,obstacles
+        
+def main(args=None):
               
     print(obstacles)
 
