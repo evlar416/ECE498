@@ -12,7 +12,8 @@ def main(args=None):
     G = rrt.RRT(startpos, endpos, obstacles, 400, 10, 0.03) # (nStep/radius/stepSize) figure out best parameters
     if G.success:
         path = rrt.dijkstra(G)
+        print(path)
 
 if __name__ == '__main__':
 
-        main()
+        main() 
