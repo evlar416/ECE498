@@ -46,13 +46,11 @@ def main(args=None):
     G = rrt.RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
     if G.success:
         path = rrt.dijkstra(G)
-        print(path)
+        # print(path)
         # simulate jetbot movement
         jetbot_state = jbs.state_space(0,0,0)
         jetbot_action = jbs.action_space()
         jetbot_path = [[0,0]]
-        hist = (0,0)
-        error = [] # use this eventually
 
         print("PATH LENGTH: ")
         print(len(path))
@@ -66,7 +64,7 @@ def main(args=None):
         rrt.plot(G, obstacles, radius, jetbot_path)
         print("JETBOT PATH LENGTH: ")
         print(len(jetbot_path))
-        print(jetbot_path)
+        # print(jetbot_path)
     '''
         plot(G, obstacles, radius, path)
     else:

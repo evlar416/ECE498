@@ -31,11 +31,9 @@ class action_space:
 # sets action_space to be called to move robot
 def state_transition(state_space,action_space,next_vertex):
     # find angle to next_vertex
-    # print(next_vertex[0],state_space.x)
-    # use arctan or arctan2?
     ang = np.arctan2((next_vertex[1]-state_space.z),(next_vertex[0] - state_space.x))
     # adjust theta of jetbot assuming it matches this rotation --> maybe use an ideal/next angle var?
-    state_space.theta += ang #valid with atan2 always returning quandrant?
+    state_space.theta += ang
     # update action_space 
     action_space.phi = ang
     # find distance between points using pythagorean thm
@@ -50,8 +48,8 @@ def state_transition(state_space,action_space,next_vertex):
 
 # call after each movement?
 # check proximity and interference with other jetbot path - set flags?
-def collision_check(jbs1, jbs2, jbp1, jbp2, radius):
-    if rrt.distance(jbs1,jbs2) < radius:
+def collision_check(jbs1, jbs2,radius):
+    if rrt.distance((jbs1.x,jbs1.z),(jbs2.x,jbs2.z)) < radius:
         return True
 
 # return vals
@@ -66,13 +64,13 @@ def path_check(jbs1, jbs2, jbp1, jbp2, radius):
         if i < jbp1.journeylen:
             continue
         line = rrt.Line(jbp1[i], jbp1[i+1])
-        if rrt.isThruObstacle(line,(jbp2.x,jbp2.z), radius):
+        if rrt.isThruObstacle(line,(jbs2.x,jbs2.z), radius):
             col = 1
     for i in range(len(jbp2)):
         if i < jbp2.journeylen:
             continue
         line = rrt.Line(jbp2[i], jbp2[i+1])
-        if rrt.isThruObstacle(line,(jbp1.x,jbp1.z), radius):
+        if rrt.isThruObstacle(line,(jbs1.x,jbs1.z), radius):
             col = 1
     
 def dist_left(jbs1, jbs2, jbp1, jbp2):
@@ -90,9 +88,9 @@ def dist_left(jbs1, jbs2, jbp1, jbp2):
     else: which = 2
     return which
 
-def collision_handler(jbs1, jbs2, jbp1, jbp2):
-    if(collision_check(jbs1, jbs2, jbp1, jbp2)):
-        which = path_check(jbs1, jbs2, jbp1, jbp2)
+def collision_handler(jbs1, jbs2, jbp1, jbp2,radius):
+    if(collision_check(jbs1, jbs2, radius)):
+        which = path_check(jbs1, jbs2, jbp1, jbp2,radius)
         if(which):
             #what to do - closer jetbot keeps moving
             if which == 1:

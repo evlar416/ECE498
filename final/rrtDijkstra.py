@@ -6,8 +6,8 @@ This work is licensed under the terms of the MIT license, see <https://opensourc
 
 import numpy as np
 from random import random
-# import matplotlib.pyplot as plt
-# from matplotlib import collections  as mc
+import matplotlib.pyplot as plt
+from matplotlib import collections  as mc
 from collections import deque
 
 class Line():
@@ -267,34 +267,39 @@ def dijkstra(G):
 
 
 
-# def plot(G, obstacles, radius, path=None):
-#     '''
-#     Plot RRT, obstacles and shortest path
-#     '''
-#     px = [x for x, y in G.vertices]
-#     py = [y for x, y in G.vertices]
-#     fig, ax = plt.subplots()
+def plot(G, obstacles, radius, path1=None, path2=None):
+    '''
+    Plot RRT, obstacles and shortest path
+    '''
+    px = [x for x, y in G.vertices]
+    py = [y for x, y in G.vertices]
+    fig, ax = plt.subplots()
 
-#     for obs in obstacles:
-#         circle = plt.Circle(obs, radius, color='red')
-#         ax.add_artist(circle)
+    for obs in obstacles:
+        circle = plt.Circle(obs, radius, color='red')
+        ax.add_artist(circle)
 
-#     ax.scatter(px, py, c='cyan')
-#     ax.scatter(G.startpos[0], G.startpos[1], c='black')
-#     ax.scatter(G.endpos[0], G.endpos[1], c='black')
+    ax.scatter(px, py, c='cyan')
+    ax.scatter(G.startpos[0], G.startpos[1], c='black')
+    ax.scatter(G.endpos[0], G.endpos[1], c='black')
 
-#     lines = [(G.vertices[edge[0]], G.vertices[edge[1]]) for edge in G.edges]
-#     lc = mc.LineCollection(lines, colors='green', linewidths=2)
-#     ax.add_collection(lc)
+    lines = [(G.vertices[edge[0]], G.vertices[edge[1]]) for edge in G.edges]
+    lc = mc.LineCollection(lines, colors='green', linewidths=2)
+    ax.add_collection(lc)
 
-#     if path is not None:
-#         paths = [(path[i], path[i+1]) for i in range(len(path)-1)]
-#         lc2 = mc.LineCollection(paths, colors='blue', linewidths=3)
-#         ax.add_collection(lc2)
-
-#     ax.autoscale()
-#     ax.margins(0.1)
-#     plt.show()
+    if path1 is not None:
+        path1s = [(path1[i], path1[i+1]) for i in range(len(path1)-1)]
+        lc2 = mc.LineCollection(path1s, colors='blue', linewidths=3)
+        ax.add_collection(lc2)
+    
+    if path2 is not None:
+         path2s = [(path2[i], path2[i+1]) for i in range(len(path2)-1)]
+         lc2 = mc.LineCollection(path2s, colors='blue', linewidths=3)
+         ax.add_collection(lc2)
+    
+    ax.autoscale()
+    ax.margins(0.1)
+    plt.show()
 
 
 def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
@@ -314,12 +319,11 @@ if __name__ == '__main__':
     stepSize = 0.7
 
     G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
-    # G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
 
     if G.success:
         path = dijkstra(G)
         print(path)
-#         plot(G, obstacles, radius, path)
+        plot(G, obstacles, radius, path)
     else:
         print("Fail")
-#         plot(G, obstacles, radius)
+        plot(G, obstacles, radius)
