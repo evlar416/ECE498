@@ -1,10 +1,15 @@
 from aruco_opencv_msgs.msg import ArucoDetection
 from std_msgs.msg import String
 
+import rclpy
+from rclpy.node import Node
+
 class ArucoSubscriber(Node):
     
     def __init__(self):
         super().__init__('aruco_subscriber') # this name will show in node list
+        
+        #rclpy.init()
         
         # create subscriber to aruco_detection messages
         self.sub = self.create_subscription(
@@ -19,23 +24,29 @@ class ArucoSubscriber(Node):
         
     # Build/update dictionary of coordinates for each marker every time new message arrives
     def listener_callback(self,aruco_msg):
-        for marker in aruco_msg.markers:
-            id = marker.id
-            x = marker.pose.position.x
-            y = marker.pose.position.y
-            z = marker.pose.position.z
-            self.markerPosition.update({id:[x,y,z]}) 
+#         for marker in aruco_msg.markers:
+#             name = marker.marker_id
+#             x = marker.pose.position.x
+#             y = marker.pose.position.y
+#             z = marker.pose.position.z
+            
+            name = 0
+            x = aruco_msg.markers[0].pose.position.x
+            y = aruco_msg.markers[0].pose.position.y
+            z = aruco_msg.markers[0].pose.position.z
+            
+            self.markerPosition.update({name:[x,y,z]}) 
 
 def seeTags():
     # create node
     aruco_subscriber = ArucoSubscriber()
     # define markers
-    markers = aruco_subscriber.markers
+    markers = aruco_subscriber.markerPosition
     # assume starting position of jetbot to be 0,0
     startpos = (0,0)
     # choose arbitrary goal 0
     goal_id = 0
-    endpos=(markers.markerPosition[goal_id][0],markers[goal_id][2]) # is this or [goal_id][1] correct?
+    endpos=(markers[goal_id][0], markers[goal_id][2]) # is this or [goal_id][1] correct?
 
     obstacles = []
     for iter in markers:

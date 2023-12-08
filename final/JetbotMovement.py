@@ -6,6 +6,9 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
+from std_msgs.msg import String
+
+
 JETBOT_LIN_VEL = -0.2    # parameter /jetbot/teleop_keyboard/max_linear_vel   (.63172 for real JetBot)
 JETBOT_ANG_VEL = 3.0   # parameter /jetbot/teleop_keyboard/max_angular_vel  (12.5 for real JetBot)
 
@@ -15,6 +18,7 @@ ANG_VEL_COEF = 0.0545 # found by calibrating jetbot
 
 
 class JetbotMovement(Node):
+
 
     def __init__(self):
         self.twist = Twist()
@@ -28,7 +32,7 @@ class JetbotMovement(Node):
         
         # create publisher to jetbot motor control
         # based off teleop_keyboard.py
-        rclpy.init()
+        #rclpy.init()
         self.node = rclpy.create_node('move_jetbot', namespace='jetbot')
         self.pub = self.node.create_publisher(Twist, 'cmd_vel', 10)
         print("Initialized jetbot movement node")
@@ -109,3 +113,25 @@ class JetbotMovement(Node):
         return
 
     
+
+def main(args=None):
+
+    node = JetbotMovement()
+
+    node.test_movement()
+    
+    node.clear_twist()
+    
+    rclpy.spin(node.node)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    node.node.destroy_node()
+
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+
+        main()

@@ -1,16 +1,21 @@
 
-import JetbotMovement as jbm
+from final.JetbotMovement import JetbotMovement
 
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
-import arucoSubscriber as aruco
-import rrtDijkstra as rrt
-import jetbotState as jbs
+import final.arucoSubscriber as aruco
+import final.rrtDijkstra as rrt
+import final.jetbotState as jbs
 
 
 def main(args=None):
+    
+    rclpy.init()
+    
+    aruco_sub = aruco.ArucoSubscriber()
+    
     jetState = jbs.state_space(0,0,0)
     jetAction = jbs.action_space()
 
@@ -20,9 +25,8 @@ def main(args=None):
     if G.success:
         path = rrt.dijkstra(G)
 
-    node = jbm.JetbotMovement()
+    node = JetbotMovement.JetbotMovement()
 
-    node.test_movement()
     for p in path[1:]:
         jbm.move(jbs.state_transition(jetState,jetAction,p))
         node.clear_twist()
