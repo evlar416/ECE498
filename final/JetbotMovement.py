@@ -87,7 +87,7 @@ class JetbotMovement(Node):
         
         self.pub.publish(self.twist)
         
-        time.sleep(0.1)
+        time.sleep(0.01)
 
         return
     
