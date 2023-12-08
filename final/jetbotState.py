@@ -42,5 +42,5 @@ def state_transition(state_space,action_space,next_vertex):
     state_space.x = state_space.x + mv[0]
     state_space.z = state_space.z + mv[1]
     # return angle and distance for motor controller
-    return tuple(action_space.dist,action_space.phi)
+    return tuple((action_space.dist,action_space.phi))
     

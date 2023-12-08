@@ -58,11 +58,12 @@ class MinimalPublisher(Node):
 
             
     def listener_callback(self, aruco_msg):
-        
+        #name = aruco_msg.markers[0].id
         x0 = aruco_msg.markers[0].pose.position.x
         z0 = aruco_msg.markers[0].pose.position.z
         theta0 = aruco_msg.markers[0].pose.orientation.z
         print("Marker 0: x = ", x0, " | z = ", z0, " | theta = ", theta0)
+        print("Maker IDS: ", aruco_msg.markers[0].marker_id)
         
         x1 = aruco_msg.markers[1].pose.position.x
         z1 = aruco_msg.markers[1].pose.position.z
