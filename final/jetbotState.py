@@ -50,8 +50,8 @@ def state_transition(state_space,action_space,next_vertex):
 
 # call after each movement?
 # check proximity and interference with other jetbot path - set flags?
-def collision_check(jbs1, jbs2, jbp1, jbp2, radius):
-    if rrt.distance(jbs1,jbs2) < radius:
+def collision_check(jbs1, jbs2, radius):
+    if rrt.distance((jbs1.x,jbs1.z),(jbs2.x,jbs2.z)) < radius:
         return True
 
 # return vals
@@ -90,8 +90,8 @@ def dist_left(jbs1, jbs2, jbp1, jbp2):
     else: which = 2
     return which
 
-def collision_handler(jbs1, jbs2, jbp1, jbp2):
-    if(collision_check(jbs1, jbs2, jbp1, jbp2)):
+def collision_handler(jbs1, jbs2, jbp1, jbp2,radius):
+    if(collision_check(jbs1, jbs2,radius)):
         which = path_check(jbs1, jbs2, jbp1, jbp2)
         if(which):
             #what to do - closer jetbot keeps moving
@@ -101,7 +101,7 @@ def collision_handler(jbs1, jbs2, jbp1, jbp2):
             else:
                 jbs1.halt = 1
         else:
-            which = dist_left
+            which = dist_left(jbs1, jbs2, jbp1, jbp2)
             if which == 1:
                 # jetbot 1 closer
                 jbs2.halt = 1
