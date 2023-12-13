@@ -10,11 +10,11 @@ from std_msgs.msg import String
 
 
 JETBOT_LIN_VEL = -0.2    # parameter /jetbot/teleop_keyboard/max_linear_vel   (.63172 for real JetBot)
-JETBOT_ANG_VEL = 3.0   # parameter /jetbot/teleop_keyboard/max_angular_vel  (12.5 for real JetBot)
+JETBOT_ANG_VEL = -3.0   # parameter /jetbot/teleop_keyboard/max_angular_vel  (12.5 for real JetBot)
 
 #Need to use different coefficients for different surfaces
-LIN_VEL_COEF = 1.739 # found by calibrating jetbot for library table tops
-ANG_VEL_COEF = 0.0545 # found by calibrating jetbot
+LIN_VEL_COEF = 1.69 # found by calibrating jetbot for library table tops
+ANG_VEL_COEF = 0.057 # found by calibrating jetbot
 
 
 class JetbotMovement(Node):
@@ -40,14 +40,15 @@ class JetbotMovement(Node):
     
     def move(self, cmd:tuple):
         """
-        Input: (dist, rot) rotates the jetbot, rot degrees, then moves the jetbot forward dist meters
+        Input: (dist, rot) rotates the jetbot, rot degrees, then moves the jetbot forward dist cm
         """
         
         dist = float(cmd[0])
         rot = float(cmd[1])
-
-        drive_time = np.absolute(dist/JETBOT_LIN_VEL) * LIN_VEL_COEF
-        rot_time = np.absolute(rot/JETBOT_ANG_VEL) * ANG_VEL_COEF
+        print("Rotating: ", round(rot,3), " Driving: ", round(dist,3))
+        
+        drive_time = round(np.absolute(dist/JETBOT_LIN_VEL) * LIN_VEL_COEF,3)
+        rot_time = round(np.absolute(rot/JETBOT_ANG_VEL) * ANG_VEL_COEF,3)
 
         if(rot > 0 ):
             self.twist.angular.z = JETBOT_ANG_VEL
@@ -55,7 +56,7 @@ class JetbotMovement(Node):
             self.twist.angular.z = -1*(JETBOT_ANG_VEL)
         
         self.pub.publish(self.twist)
-        print("Rotating for ", rot_time, " seconds")
+        #print("Rotating for ", rot_time, " seconds")
         time.sleep(rot_time)
         
         self.clear_twist()
@@ -64,7 +65,7 @@ class JetbotMovement(Node):
             self.twist.linear.x = JETBOT_LIN_VEL
         
         self.pub.publish(self.twist)
-        print("Driving for ", drive_time, " seconds")
+        #print("Driving for ", drive_time, " seconds")
         time.sleep(drive_time)
         
         self.clear_twist()
@@ -87,7 +88,7 @@ class JetbotMovement(Node):
         
         self.pub.publish(self.twist)
         
-        time.sleep(0.01)
+        time.sleep(0.02)
 
         return
     
@@ -115,10 +116,14 @@ class JetbotMovement(Node):
     
 
 def main(args=None):
+    
+    rclpy.init()
 
     node = JetbotMovement()
 
-    node.test_movement()
+    #node.test_movement()
+    
+    node.move((0,-45))
     
     node.clear_twist()
     

@@ -16,7 +16,7 @@ class Line():
         self.p = np.array(p0)
         self.dirn = np.array(p1) - np.array(p0)
         self.dist = np.linalg.norm(self.dirn)
-        self.dirn /= self.dist # normalize
+        self.dirn = self.dirn / self.dist # normalize
 
     def path(self, t):
         return self.p + t * self.dirn
@@ -323,3 +323,22 @@ if __name__ == '__main__':
     else:
         print("Fail")
 #         plot(G, obstacles, radius)
+
+def smooth(path,obstacles,radius):
+    newPath = []
+    parent = path[0]
+    prev = path[0]
+    #newPath.append(parent)
+    for i in path:
+        line = Line(i,parent)
+        if isThruObstacle(line,obstacles,radius):
+            newPath.append(prev)
+            parent = prev
+            prev = i
+        elif np.allclose(i,path[-1]):
+            newPath.append(i)
+            prev = i
+        else:
+            prev = i
+
+    return newPath

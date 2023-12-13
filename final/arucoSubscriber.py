@@ -27,8 +27,8 @@ class ArucoSubscriber(Node):
     def listener_callback(self,aruco_msg):
         for marker in aruco_msg.markers:
             name = marker.marker_id
-            x = marker.pose.position.x
-            z = marker.pose.position.z            
+            x = round(marker.pose.position.x,4)
+            z = round(marker.pose.position.z,4)            
             self.markerPosition.update({name:(x,z)})
             if(name == self.goal_id):
                 self.goal_found = True
