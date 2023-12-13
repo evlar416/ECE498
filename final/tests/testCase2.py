@@ -299,6 +299,11 @@ def state_transition(state_space,action_space,next_vertex):
     mv = action_space.movement()
     state_space.x = state_space.x + mv[0]
     state_space.z = state_space.z + mv[1]
+    '''
+    print ("STATE X: " + str(state_space.x) + "\n")
+    print ("STATE Z: " + str(state_space.z) + "\n")
+    print ("STATE T: " + str(state_space.theta) + "\n")
+    '''
     
 ################################################################################    
         
