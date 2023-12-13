@@ -73,7 +73,8 @@ def path_check(jbs1, jbs2, jbp1, jbp2, radius):
             continue
         line = rrt.Line(jbp1[i], jbp1[i+1])
         if rrt.isThruObstacle(line,(jbs2.x,jbs2.z), radius):
-            if np.allclose(jbp1[i+1],jbp1[-1]):
+            # if jetbot 2 at goal, consider no collision -- have jetbot1 consider itself done?
+            if np.allclose(jbp2[i+1],jbp2[-1]):
                 col = 0
             else:
                 col = 2
@@ -82,7 +83,8 @@ def path_check(jbs1, jbs2, jbp1, jbp2, radius):
             continue
         line = rrt.Line(jbp2[i], jbp2[i+1])
         if rrt.isThruObstacle(line,(jbs1.x,jbs1.z), radius):
-            if np.allclose(jbp2[i+1],jbp2[-1]):
+            # if jetbot 1 at goal, consider no collision -- have jetbot2 consider itself done?
+            if np.allclose(jbp1[i+1],jbp1[-1]):
                 col = 0
             else:
                 col = 1
@@ -106,6 +108,7 @@ def dist_left(jbs1, jbs2, jbp1, jbp2):
     return which
 
 def collision_handler(jbs1, jbs2, jbp1, jbp2,radius):
+    done = 0
     if(collision_check(jbs1, jbs2, radius)):
         which = path_check(jbs1, jbs2, jbp1, jbp2,radius)
         if which != 0:
@@ -119,12 +122,21 @@ def collision_handler(jbs1, jbs2, jbp1, jbp2,radius):
         else:
             which = dist_left(jbs1, jbs2, jbp1, jbp2)
             if which == 1:
-                # jetbot 1 closer
-                jbs1.halt = 1
-                print("JETBOT1 HALTING: jetbot 1 closer to goal")
+                if np.allclose(jbp1[jbs1.journeylen],jbp1[-1]):
+                    done = 1
+                    jbs1.halt = 0
+                else:
+                    # jetbot 1 closer
+                    jbs1.halt = 1
+                    print("JETBOT1 HALTING: jetbot 1 closer to goal")
             else:
-                jbs2.halt = 1 
-                print("JETBOT2 HALTING: jetbot 2 closer to goal")
+                if np.allclose(jbp2[jbs2.journeylen],jbp2[-1]):
+                    done = 1
+                    jbs2.halt = 0
+                else:
+                    jbs2.halt = 1 
+                    print("JETBOT2 HALTING: jetbot 2 closer to goal")
     else:
         jbs1.halt = 0
         jbs2.halt = 0
+    return done

@@ -10,7 +10,7 @@ def main(args=None):
     
     # assume starting position of jetbot to be 0,0
     startpos1 = (0,0)
-    startpos2 = (1,0)
+    startpos2 = (0,-1)
 
     ArucoMarkers = {}
     # define 5 total markers
@@ -20,6 +20,10 @@ def main(args=None):
     ArucoMarkers.update({2:(3,3)})
     ArucoMarkers.update({3:(4,4)})
     ArucoMarkers.update({4:(5,5)})
+    ArucoMarkers.update({5:(0,5)})
+    ArucoMarkers.update({6:(-1,2)})
+    ArucoMarkers.update({7:(-2,3)})
+    ArucoMarkers.update({8:(-3,4)})
 
     '''
     # With two jetbots goal and obstacles will have different positons
@@ -35,7 +39,8 @@ def main(args=None):
     print(endpos)
     '''
 
-    goal_marker = random.randint(0,4)
+    #goal_marker = random.randint(0,4)
+    goal_marker = 4
     endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1])
     endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1])
 
@@ -50,7 +55,7 @@ def main(args=None):
     print(obstacles)
 
     # define max iteration for RRT
-    n_iter = 200
+    n_iter = 300
               
     # define radius for both reaching goal and avoiding obstacles??
     radius = 0.4 # adjust for 10 cm radius for jetbot 
@@ -81,7 +86,12 @@ def main(args=None):
         fin1 = 0
         fin2 = 0
         while not fin:
-            jbs.collision_handler(jetbot_state1,jetbot_state2,path1,path2,radius)
+            done = jbs.collision_handler(jetbot_state1,jetbot_state2,path1,path2,radius)
+            # considers jetbot path finished if there is a collision but the other jetbot is at the goal
+            if done == 1:
+                fin1 = 1
+            elif done == 2:
+                fin2 = 1
 
             if jetbot_state1.halt != 1:
                 if not np.allclose(jetbot_path1[-1],path1[-1]):
