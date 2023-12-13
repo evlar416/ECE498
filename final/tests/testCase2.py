@@ -295,7 +295,7 @@ def state_transition(state_space,action_space,next_vertex):
     # update state_space assuming position becomes new position (will definitely introduce error)
     # should really update state space according to action_space.movement()
     # state_space.x = next_vertex[0]
-    # state_space.z = next_vertex[1]
+    # state_space.z = next_vertex[1] 
     mv = action_space.movement()
     state_space.x = state_space.x + mv[0]
     state_space.z = state_space.z + mv[1]

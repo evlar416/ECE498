@@ -2,10 +2,6 @@ import random
 import jetbotState as jbs
 import rrtDijkstra as rrt
 
-# for coordinate transforms:
-    # - need to use translation and rotation of goal from both jetbots p.o.v.
-    # - is distance between the two goal positions the translation matrix?
-
 
 def main(args=None):
     
@@ -62,24 +58,19 @@ def main(args=None):
         jetbot_action2 = jbs.action_space()
         jetbot_path2 = [[0,0]]
 
-        fin = 0
-        fin1 = 0
-        fin2 = 0
-        while not fin:
+
+        while not  fin:
             jbs.collision_handler(jetbot_state1,jetbot_state2,path1,path2,radius)
 
             if jetbot_state1.halt != 1:
                 if jetbot_path1[-1] != path1[-1]:
                     jbs.state_transition(jetbot_state1,jetbot_action1,path1[jetbot_state1.journeylen + 1]) # jetbot state is updated by this function
                     jetbot_path1.append((jetbot_state1.x,jetbot_state1.z))
-                else: fin1 = 1
 
             if jetbot_state2.halt != 1:
-                if jetbot_path2[-1] != path2[-1]:
+                if jetbot_path1[-1] != path1[-1]:
                     jbs.state_transition(jetbot_state2,jetbot_action2,jetbot_path2[jetbot_state2.journeylen + 1]) # jetbot state is updated by this function
                     jetbot_path2.append((jetbot_state2.x,jetbot_state2.z))
-                else: fin2 = 1
-            if(fin1 and fin2): fin = 1
 
         rrt.plot(G1, obstacles, radius, jetbot_path1,jetbot_path2)
         
