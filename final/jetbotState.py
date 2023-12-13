@@ -30,21 +30,27 @@ class action_space:
 # movement needed to transition from current state to next state
 # sets action_space to be called to move robot
 def state_transition(state_space,action_space,next_vertex):
-    # find angle to next_vertex
-    ang = np.arctan2((next_vertex[1]-state_space.z),(next_vertex[0] - state_space.x))
-    # adjust theta of jetbot assuming it matches this rotation --> maybe use an ideal/next angle var?
-    state_space.theta += ang
-    # update action_space 
-    action_space.phi = ang
-    # find distance between points using pythagorean thm
-    dist = np.sqrt((next_vertex[0] - state_space.x)**2 + (next_vertex[1]-state_space.z)**2)
-    action_space.dist = dist
-    mv = action_space.movement()
-    state_space.x = state_space.x + mv[0]
-    state_space.z = state_space.z + mv[1]
-    state_space.journeylen += 1
-    # return angle and distance for motor controller
-    return tuple((action_space.dist,action_space.phi))
+    if not state_space.halt:
+        # find angle to next_vertex
+        ang = np.arctan2((next_vertex[1]-state_space.z),(next_vertex[0] - state_space.x))
+        print(" ANGLE : " + ang)
+        # adjust theta of jetbot assuming it matches this rotation --> maybe use an ideal/next angle var?
+        state_space.theta = ang
+        # update action_space 
+        action_space.phi = ang - state_space.theta
+        # find distance between points using pythagorean thm
+        dist = np.sqrt((next_vertex[0] - state_space.x)**2 + (next_vertex[1]-state_space.z)**2)
+        action_space.dist = dist
+        # check variable updated by collision handler, move if necessary
+        mv = action_space.movement()
+        state_space.x = state_space.x + mv[0]
+        state_space.z = state_space.z + mv[1]
+        state_space.journeylen += 1
+        # return angle and distance for motor controller
+        return tuple((action_space.dist,action_space.phi))
+    # case for no movement
+    else:
+        return(0,action_space.phi)
 
 # call after each movement?
 # check proximity and interference with other jetbot path - set flags?

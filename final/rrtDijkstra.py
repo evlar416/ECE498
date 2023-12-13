@@ -265,6 +265,27 @@ def dijkstra(G):
     path.appendleft(G.vertices[curNode])
     return list(path)
 
+def smooth(path,obstacles,radius):
+    newPath = []
+    parent = path[0]
+    prev = path[0]
+    #newPath.append(parent)
+    for i in path:
+        line = Line(i,parent)
+        if isThruObstacle(line,obstacles,radius):
+            newPath.append(prev)
+            parent = prev
+            prev = i
+        elif np.allclose(i,path[-1]):
+            newPath.append(i)
+            prev = i
+        else:
+            prev = i
+
+    return newPath
+             
+
+
 
 
 def plot(G, obstacles, radius, path1=None, path2=None):

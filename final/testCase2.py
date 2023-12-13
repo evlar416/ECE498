@@ -3,6 +3,8 @@ import random
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
 from collections import deque
+import math
+import numpy as np
 
 ####################################################################################################
 
@@ -15,7 +17,9 @@ class Line():
         self.p = np.array(p0)
         self.dirn = np.array(p1) - np.array(p0)
         self.dist = np.linalg.norm(self.dirn)
-        self.dirn /= self.dist # normalize
+        #self.dirn /= self.dist # normalize
+        self.dirn = self.dirn / self.dist # normalize
+
 
     def path(self, t):
         return self.p + t * self.dirn
@@ -204,6 +208,26 @@ def dijkstra(G):
         curNode = prev[curNode]
     path.appendleft(G.vertices[curNode])
     return list(path)
+
+def smooth(path,obstacles,radius):
+    newPath = []
+    parent = path[0]
+    prev = path[0]
+    #newPath.append(parent)
+    for i in path:
+        line = Line(i,parent)
+        if isThruObstacle(line,obstacles,radius):
+            newPath.append(prev)
+            parent = prev
+            prev = i
+        elif np.allclose(i,path[-1]):
+            newPath.append(i)
+            prev = i
+        else:
+            prev = i
+
+    return newPath
+
 def plot(G, obstacles, radius, path=None):
     '''
     Plot RRT, obstacles and shortest path
@@ -229,10 +253,10 @@ def plot(G, obstacles, radius, path=None):
         lc2 = mc.LineCollection(paths, colors='blue', linewidths=2)
         ax.add_collection(lc2)
 
-    # ax.autoscale()
+    ax.autoscale()
     ax.margins(0.1)
-    plt.xlim(-10,10)
-    plt.ylim(-10,10)
+    #plt.xlim(-10,10)
+    #plt.ylim(-10,10)
     plt.show()
 
 ################################################################################
@@ -276,6 +300,9 @@ class action_space:
         self.ang_time = np.absolute(self.theta / self.ang_velocity)
         # print(((np.sin(self.theta)*self.dist),(np.sin(self.theta)*self.dist)))
         # return value below intended for simulation purposes
+        str1 = str(float(np.cos(self.theta)*self.dist))
+        str2 = str(float(np.sin(self.theta)*self.dist))
+        print(str1 + "," + str2)
         return ((np.cos(self.theta)*self.dist),(np.sin(self.theta)*self.dist))
         
 # movement needed to transition from current state to next state
@@ -285,24 +312,30 @@ def state_transition(state_space,action_space,next_vertex):
     # print(next_vertex[0],state_space.x)
     # use arctan or arctan2?
     ang = np.arctan2((next_vertex[1]-state_space.z),(next_vertex[0] - state_space.x))
-    # adjust theta of jetbot
-    state_space.theta = ang + state_space.theta
     # update action_space
-    action_space.theta = ang
+    action_space.theta = ang - state_space.theta
+    print("ACTION ANGLE: " + str(float(action_space.theta)))
+    #action_space.theta = ang - state_space.theta # % (2*math.pi) ?
+    # adjust theta of jetbot
+    state_space.theta = ang
+    #angStr = str(float(action_space.theta))
+    #print(angStr)
     # find distance between points using pythagorean thm
-    dist = np.sqrt((next_vertex[0] - state_space.x)**2 + (next_vertex[1]-state_space.z)**2)
+    #dist = np.sqrt((next_vertex[0] - state_space.x)**2 + (next_vertex[1]-state_space.z)**2)
+    dist = np.linalg.norm((next_vertex[0] - state_space.x) - (next_vertex[1]-state_space.z))
     action_space.dist = dist
+    print("DISTANCE: " + str(float(dist)))
     # update state_space assuming position becomes new position (will definitely introduce error)
     # should really update state space according to action_space.movement()
-    # state_space.x = next_vertex[0]
-    # state_space.z = next_vertex[1] 
+    state_space.x = next_vertex[0]
+    state_space.z = next_vertex[1] 
     mv = action_space.movement()
-    state_space.x = state_space.x + mv[0]
-    state_space.z = state_space.z + mv[1]
+    #state_space.x = state_space.x + mv[0]
+    #state_space.z = state_space.z + mv[1]
     '''
     print ("STATE X: " + str(state_space.x) + "\n")
     print ("STATE Z: " + str(state_space.z) + "\n")
-    print ("STATE T: " + str(state_space.theta) + "\n")
+    print ("STATE T: " + str(state_space.theta) + "s\n")
     '''
     
 ################################################################################    
@@ -315,16 +348,25 @@ def main(args=None):
     ArucoMarkers = {}
     # define 5 total markers
     # NEED TO CONSIDER NEGATIVE COORDINATES!!!
-    for i in range(5):
-        ArucoMarkers.update({i:(random.randint(-8,8),random.randint(-8,8),random.randint(-8,8))})
+    #for i in range(5):
+    #    ArucoMarkers.update({i:(random.randint(-8,8),random.randint(-8,8))})
+
+    ArucoMarkers.update({0:(1,1)})
+    ArucoMarkers.update({1:(2,2)})
+    ArucoMarkers.update({2:(3,3)})
+    ArucoMarkers.update({3:(4,4)})
+    ArucoMarkers.update({4:(5,5)})
+
 
     # choose arbitrary goal for now
-    # goal = ArucoMarkers[random.randint(0,4)]
-    goal_marker = 0
-    # endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][2])
-    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1]) # is this or above correct?
-    print("END POS: ")
-    print(endpos)
+    #goal = ArucoMarkers[random.randint(0,4)]
+    goal_marker = random.randint(0,4)
+    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1])
+    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1]) # is this or [1] correct?
+    #endpos=(-0.1166,0.5012) # is this or above correct?
+    #endpos = (3,4)
+    #print("END POS: ")
+    #print(endpos)
 
     obstacles = []
     # these are exact comparisons, will need to be margin of error when comparing real coordinates (floats)
@@ -338,10 +380,10 @@ def main(args=None):
     print(obstacles)
 
     # define max iteration for RRT
-    n_iter = 400
+    n_iter = 500
               
     # define radius for both reaching goal and avoiding obstacles??
-    radius = 0.5 # 10 cm radius
+    radius = 0.2 # 10 cm radius
               
     # define stepsize for forming new verticies
     stepSize = 0.3 # need to figure out stepsize for jetbot
@@ -351,10 +393,13 @@ def main(args=None):
     if G.success:
         path = dijkstra(G)
         print(path)
+        path = smooth(path,obstacles,radius)
+        print(path)
         # simulate jetbot movement
-        jetbot_state = state_space(0,0,0)
+        jetbot_state = state_space(0,0,math.pi/2)
         jetbot_action = action_space()
-        jetbot_path = [[0,0]]
+        #jetbot_path = [[0,0]]
+        jetbot_path = [(0,0)]
         hist = (0,0)
         error = [] # use this eventually
 

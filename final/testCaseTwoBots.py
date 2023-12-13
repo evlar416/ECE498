@@ -1,6 +1,7 @@
 import random
 import jetbotState as jbs
 import rrtDijkstra as rrt
+import numpy as np
 
 
 def main(args=None):
@@ -47,33 +48,45 @@ def main(args=None):
     G2 = rrt.RRT_star(startpos2, endpos, obstacles, n_iter, radius, stepSize)
     if G1.success:
         path1 = rrt.dijkstra(G1)
-        # print(path)
+        print("path1 success")
         # simulate jetbot movement
         jetbot_state1 = jbs.state_space(startpos1[0],startpos1[1],0)
         jetbot_action1 = jbs.action_space()
         jetbot_path1 = [[0,0]]
     if G2.success:
+        print("path2 success")
         path2 = rrt.dijkstra(G2)
         jetbot_state2 = jbs.state_space(startpos2[0],startpos2[1],0)
         jetbot_action2 = jbs.action_space()
         jetbot_path2 = [[0,0]]
 
-
-        while not  fin:
+        fin = 0
+        fin1 = 0
+        fin2 = 0
+        while not fin:
             jbs.collision_handler(jetbot_state1,jetbot_state2,path1,path2,radius)
 
             if jetbot_state1.halt != 1:
-                if jetbot_path1[-1] != path1[-1]:
+                if np.allclose(jetbot_path1[-1],path1[-1]):
                     jbs.state_transition(jetbot_state1,jetbot_action1,path1[jetbot_state1.journeylen + 1]) # jetbot state is updated by this function
                     jetbot_path1.append((jetbot_state1.x,jetbot_state1.z))
+                else:
+                    fin1 = 1
 
             if jetbot_state2.halt != 1:
-                if jetbot_path1[-1] != path1[-1]:
-                    jbs.state_transition(jetbot_state2,jetbot_action2,jetbot_path2[jetbot_state2.journeylen + 1]) # jetbot state is updated by this function
+                if np.allclose(jetbot_path2[-1],path2[-1]):
+                    jbs.state_transition(jetbot_state2,jetbot_action2,path2[jetbot_state2.journeylen + 1]) # jetbot state is updated by this function
                     jetbot_path2.append((jetbot_state2.x,jetbot_state2.z))
+                else:
+                    fin2 = 1
 
-        rrt.plot(G1, obstacles, radius, jetbot_path1,jetbot_path2)
-        
+            if fin1 and fin2:
+                fin = 1
+            else:
+                continue
+
+        rrt.plot(G1, obstacles, radius, jetbot_path1)
+        rrt.plot(G2, obstacles, radius, jetbot_path2)
     '''
         plot(G, obstacles, radius, path)
     else:
