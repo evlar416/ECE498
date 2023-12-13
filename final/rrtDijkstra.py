@@ -16,7 +16,8 @@ class Line():
         self.p = np.array(p0)
         self.dirn = np.array(p1) - np.array(p0)
         self.dist = np.linalg.norm(self.dirn)
-        self.dirn /= self.dist # normalize
+        #self.dirn /= self.dist # normalize
+        self.dirn = self.dirn / self.dist
 
     def path(self, t):
         return self.p + t * self.dirn
@@ -269,7 +270,7 @@ def smooth(path,obstacles,radius):
     newPath = []
     parent = path[0]
     prev = path[0]
-    #newPath.append(parent)
+    newPath.append(parent)
     for i in path:
         line = Line(i,parent)
         if isThruObstacle(line,obstacles,radius):
@@ -284,8 +285,6 @@ def smooth(path,obstacles,radius):
 
     return newPath
              
-
-
 
 
 def plot(G, obstacles, radius, path1=None, path2=None):
@@ -310,13 +309,13 @@ def plot(G, obstacles, radius, path1=None, path2=None):
 
     if path1 is not None:
         path1s = [(path1[i], path1[i+1]) for i in range(len(path1)-1)]
-        lc2 = mc.LineCollection(path1s, colors='blue', linewidths=3)
+        lc2 = mc.LineCollection(path1s, colors='blue', linewidths=2)
         ax.add_collection(lc2)
     
     if path2 is not None:
-         path2s = [(path2[i], path2[i+1]) for i in range(len(path2)-1)]
-         lc2 = mc.LineCollection(path2s, colors='blue', linewidths=3)
-         ax.add_collection(lc2)
+        path2s = [(path2[i], path2[i+1]) for i in range(len(path2)-1)]
+        lc3 = mc.LineCollection(path2s, colors='red', linewidths=2)
+        ax.add_collection(lc3)
     
     ax.autoscale()
     ax.margins(0.1)

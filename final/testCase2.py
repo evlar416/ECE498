@@ -337,7 +337,7 @@ def state_transition(state_space,action_space,next_vertex):
     print ("STATE Z: " + str(state_space.z) + "\n")
     print ("STATE T: " + str(state_space.theta) + "s\n")
     '''
-    
+
 ################################################################################    
         
 def main(args=None):
@@ -362,7 +362,7 @@ def main(args=None):
     #goal = ArucoMarkers[random.randint(0,4)]
     goal_marker = random.randint(0,4)
     endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1])
-    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1]) # is this or [1] correct?
+    endpos=(ArucoMarkers[goal_marker][0],ArucoMarkers[goal_marker][1])
     #endpos=(-0.1166,0.5012) # is this or above correct?
     #endpos = (3,4)
     #print("END POS: ")
@@ -393,7 +393,7 @@ def main(args=None):
     if G.success:
         path = dijkstra(G)
         print(path)
-        path = smooth(path,obstacles,radius)
+        #path = smooth(path,obstacles,radius)
         print(path)
         # simulate jetbot movement
         jetbot_state = state_space(0,0,math.pi/2)
@@ -416,11 +416,8 @@ def main(args=None):
         print("JETBOT PATH LENGTH: ")
         print(len(jetbot_path))
         print(jetbot_path)
-    '''
-        plot(G, obstacles, radius, path)
-    else:
-        plot(G, obstacles, radius)
-    '''
+
+
 
 if __name__ == '__main__':
         main()
